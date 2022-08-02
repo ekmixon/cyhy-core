@@ -17,17 +17,16 @@ TEST_NMAP_FILENAME = "inputs/test-fullscan.xml"
 
 
 def pytest_runtest_makereport(item, call):
-    if "incremental" in item.keywords:
-        if call.excinfo is not None:
-            parent = item.parent
-            parent._previousfailed = item
+    if "incremental" in item.keywords and call.excinfo is not None:
+        parent = item.parent
+        parent._previousfailed = item
 
 
 def pytest_runtest_setup(item):
     if "incremental" in item.keywords:
         previousfailed = getattr(item.parent, "_previousfailed", None)
         if previousfailed is not None:
-            pytest.xfail("previous test failed (%s)" % previousfailed.name)
+            pytest.xfail(f"previous test failed ({previousfailed.name})")
 
 
 class YourMom(object):
@@ -59,9 +58,8 @@ class TestNmapHandler:
         handler = NmapContentHander(
             your_mom.netscan_host_callback, your_mom.end_callback
         )
-        f = open(TEST_NMAP_FILENAME, "rb")
-        parse(f, handler)
-        f.close()
+        with open(TEST_NMAP_FILENAME, "rb") as f:
+            parse(f, handler)
 
     def test_correct_number_of_end_callbacks(self, your_mom):
         assert (

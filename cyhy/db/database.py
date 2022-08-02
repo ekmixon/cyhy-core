@@ -57,8 +57,7 @@ def db_from_connection(uri, name):
             NotificationDoc,
         ]
     )
-    db = con[name]
-    return db
+    return con[name]
 
 
 def db_from_config(config_section=None, config_filename=None, yaml=False):
@@ -398,28 +397,30 @@ class TicketDoc(RootDoc):
     @property
     def false_positive_dates(self):
         fp_effective_date = fp_expiration_date = None
-        if self["false_positive"]:
-            for event in reversed(self["events"]):
-                if event["action"] == TICKET_EVENT.CHANGED:
-                    for delta in event["delta"]:
-                        if delta["key"] == "false_positive":
-                            fp_effective_date = event["time"]
-                            fp_expiration_date = event["expires"]
-                            return (fp_effective_date, fp_expiration_date)
-        else:
+        if not self["false_positive"]:
             return None
+        for event in reversed(self["events"]):
+            if event["action"] == TICKET_EVENT.CHANGED:
+                for delta in event["delta"]:
+                    if delta["key"] == "false_positive":
+                        fp_effective_date = event["time"]
+                        return fp_effective_date, event["expires"]
 
     @property
     def last_detection_date(self):
-        for event in reversed(self["events"]):
-            if event["action"] in [
-                TICKET_EVENT.OPENED,
-                TICKET_EVENT.VERIFIED,
-                TICKET_EVENT.REOPENED,
-            ]:
-                return event["time"]
-        # This should never happen, but if we don't find any OPENED/VERIFIED/REOPENED events above, gracefully return time_opened
-        return self["time_opened"]
+        return next(
+            (
+                event["time"]
+                for event in reversed(self["events"])
+                if event["action"]
+                in [
+                    TICKET_EVENT.OPENED,
+                    TICKET_EVENT.VERIFIED,
+                    TICKET_EVENT.REOPENED,
+                ]
+            ),
+            self["time_opened"],
+        )
 
     @ip.setter
     def ip(self, new_ip):
@@ -535,8 +536,9 @@ class TicketDoc(RootDoc):
                 break
         else:
             raise Exception("No references found in ticket events:", self["_id"])
-        port = self.db.PortScanDoc.find_one({"_id": reference_id})
-        if not port:
+        if port := self.db.PortScanDoc.find_one({"_id": reference_id}):
+            return port
+        else:
             # This can occur when a port_scan has been archived
             # Raise an exception with the info we have for this port_scan from the ticket
             raise PortScanNotFoundException(
@@ -544,7 +546,6 @@ class TicketDoc(RootDoc):
                 port_scan_id=reference_id,
                 port_scan_time=event["time"],
             )
-        return port
 
     def latest_vuln(self):
         """Returns the last referenced vulnerability in the event list.
@@ -555,8 +556,9 @@ class TicketDoc(RootDoc):
                 break
         else:
             raise Exception("No references found in ticket events:", self["_id"])
-        vuln = self.db.VulnScanDoc.find_one({"_id": reference_id})
-        if not vuln:
+        if vuln := self.db.VulnScanDoc.find_one({"_id": reference_id}):
+            return vuln
+        else:
             # This can occur when a vuln_scan has been archived
             # Raise an exception with the info we have for this vuln_scan from the ticket
             raise VulnScanNotFoundException(
@@ -564,7 +566,6 @@ class TicketDoc(RootDoc):
                 vuln_scan_id=reference_id,
                 vuln_scan_time=event["time"],
             )
-        return vuln
 
 
 class ScanDoc(RootDoc):
@@ -599,10 +600,7 @@ class ScanDoc(RootDoc):
 
     def reset_latest_flag_by_ip(self, ips):
         """ips can be one or more IPAddresses"""
-        if isinstance(ips, Iterable):
-            ip_ints = [int(x) for x in ips]
-        else:
-            ip_ints = [int(ips)]
+        ip_ints = [int(x) for x in ips] if isinstance(ips, Iterable) else [int(ips)]
         self.collection.update(
             {"latest": True, "ip_int": {"$in": ip_ints}},
             {"$set": {"latest": False}},
@@ -702,11 +700,7 @@ class PortScanDoc(ScanDoc):
             spec={"ip_int": ip_int, "state": "open", "latest": True},
             fields={"_id": False, "port": True},
         )
-        ports = set()
-        for r in rs:
-            port = r["port"]
-            ports.add(int(port))
-        return ports
+        return {int(r["port"]) for r in rs}
 
     def tag_latest_open(self, owners, snapshot_oid):
         self.collection.update(
@@ -882,12 +876,10 @@ class HostDoc(RootDoc):
 
     def get_by_ip(self, ip):
         int_ip = int(ip)
-        host = self.find_one({"_id": int_ip})
-        return host
+        return self.find_one({"_id": int_ip})
 
     def get_owner_of_ip(self, ip):
-        result = self.find_one({"_id": int(ip)}, {"owner": True})
-        if result:
+        if result := self.find_one({"_id": int(ip)}, {"owner": True}):
             return result["owner"]
         else:
             return None
@@ -897,26 +889,22 @@ class HostDoc(RootDoc):
         return one != None
 
     def get_some_for_stage(self, stage, count, owner=None, waiting=False):
-        if waiting:
-            status = {"$in": [STATUS.READY, STATUS.WAITING]}
-        else:
-            status = STATUS.READY
-
-        if owner != None:
-            rs = self.find(
+        status = {"$in": [STATUS.READY, STATUS.WAITING]} if waiting else STATUS.READY
+        return (
+            self.find(
                 spec={"status": status, "stage": stage, "owner": owner},
                 fields={"ip": True},
                 sort=[("priority", 1), ("r", 1)],
                 limit=count,
             )
-        else:
-            rs = self.find(
+            if owner != None
+            else self.find(
                 spec={"status": status, "stage": stage},
                 fields={"ip": True},
                 sort=[("priority", 1), ("r", 1)],
                 limit=count,
             )
-        return rs
+        )
 
     def increase_ready_hosts(self, owner, stage, count):
         hosts = self.find(
@@ -990,16 +978,15 @@ class HostDoc(RootDoc):
     def get_scheduled_hosts(self, state_up, time=None, limit=2000):
         """Retrieves hosts that have be scheduled to restart scanning.
         Returns a cursor to the hosts list"""
-        if time == None:
+        if time is None:
             time = util.utcnow()
-        cursor = self.find(
+        return self.find(
             spec={
                 "next_scan": {"$lte": time},
                 "state.up": state_up,
                 "status": STATUS.DONE,
             }
         ).limit(limit)
-        return cursor
 
     def purge_all_running(self):
         now = util.utcnow()
@@ -1110,18 +1097,11 @@ class RequestDoc(RootDoc):
 
     def get_all_owners(self):
         rs = self.find(spec={}, sort=[("_id", 1)])
-        all_owners = []
-        for r in rs:
-            all_owners.append(r["_id"])
-        return all_owners
+        return [r["_id"] for r in rs]
 
     def get_all_parents(self, orgId):
         rs = self.find(filter={"children": {"$in": [orgId]}})
-        parents = []
-        for r in rs:
-            parents.append(r["_id"])
-
-        return parents
+        return [r["_id"] for r in rs]
 
     def get_all_intersections(self, cidrs):
         results = OrderedDict()  # {request: IPSet of intersections}
@@ -1129,8 +1109,7 @@ class RequestDoc(RootDoc):
             [{"$match": {"networks": {"$ne": []}}}, {"$sort": {"_id": 1}}], cursor={}
         )
         for request in all_requests:
-            intersection = netaddr.IPSet(request["networks"]) & cidrs
-            if intersection:
+            if intersection := netaddr.IPSet(request["networks"]) & cidrs:
                 request_doc = self.find_one({"_id": request["_id"]})
                 results[request_doc] = intersection
         return results
@@ -1139,9 +1118,7 @@ class RequestDoc(RootDoc):
         # child_ids must be a list
         for child in child_ids:
             if child == self["_id"]:
-                raise ValueError(
-                    "Cannot add own id (" + child + ") to list of children"
-                )
+                raise ValueError(f"Cannot add own id ({child}) to list of children")
             if self.get("children") and child in self["children"]:
                 raise ValueError(
                     "Child ("
@@ -1179,7 +1156,7 @@ class RequestDoc(RootDoc):
         self, owner, stakeholders_only=False, include_retired=False
     ):
         # Build dict of every org and its children (if any)
-        org_info = dict()
+        org_info = {}
         for org in self.find():
             org_info[org["_id"]] = {
                 "children": org.get("children", []),
@@ -1188,7 +1165,7 @@ class RequestDoc(RootDoc):
             }
 
         if not org_info.get(owner):
-            raise ValueError(owner + " has no request document")
+            raise ValueError(f"{owner} has no request document")
 
         def get_descendants(org_info, current_org, stakeholders_only, include_retired):
             # Recursive function to get descendants of current_org
@@ -1213,7 +1190,7 @@ class RequestDoc(RootDoc):
 
     def get_owner_to_type_dict(self, stakeholders_only=False, include_retired=False):
         """returns a dict of owner_id:type. "stakeholders_only" parameter eliminates non-stakeholders from the dict."""
-        types = defaultdict(lambda: list())
+        types = defaultdict(lambda: [])
         for agency_type in AGENCY_TYPE:
             all_agency_type_descendants = self.get_all_descendants(
                 agency_type, include_retired=include_retired
@@ -1272,12 +1249,7 @@ class RequestDoc(RootDoc):
             types[org_type].add(org_id)
 
         # convert to a dict of lists
-        if not as_lists:
-            return types
-        result = dict()
-        for k, v in types.items():
-            result[k] = list(v)
-        return result
+        return {k: list(v) for k, v in types.items()} if as_lists else types
 
     def save(self, *args, **kwargs):
         if self["agency"].get("location"):
@@ -1371,7 +1343,7 @@ class TallyDoc(RootDoc):
         return self.find_one({"_id": owner})
 
     def get_all(self, since=None):
-        if since == None:
+        if since is None:
             return self.find()
         return self.find({"last_change": {"$gte": since}})
 
@@ -1627,7 +1599,7 @@ class SystemControlDoc(RootDoc):
         Returns True if the document was completed, False otherwise."""
         if timeout:
             timeout_time = util.utcnow() + datetime.timedelta(seconds=timeout)
-        while timeout == None or util.utcnow() < timeout_time:
+        while timeout is None or util.utcnow() < timeout_time:
             self.reload()
             if self["completed"]:
                 return True

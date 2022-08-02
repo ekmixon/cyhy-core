@@ -83,7 +83,7 @@ def parse_date(args):
         print >> sys.stderr, "Could not parse the date: ", args["DATE"]
         sys.exit(-1)
 
-    if start_time_local.tzinfo == None:
+    if start_time_local.tzinfo is None:
         start_time_local = start_time_local.replace(tzinfo=tz.tzlocal())
     start_time_utc = time_to_utc(start_time_local)
 

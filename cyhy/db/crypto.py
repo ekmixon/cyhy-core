@@ -17,7 +17,7 @@ class CryptoKey(object):
         self.key_check = key_check
         self.computation_time = computation_time
         self.key = None
-        if salt == None:
+        if salt is None:
             self.__generate_key(password)
         else:
             key_check_passed = self.__verify_key(password)
@@ -26,7 +26,10 @@ class CryptoKey(object):
 
     def __generate_key(self, password):
         """Generates a key from a password using salting and stretching"""
-        salt = "".join(chr(random.randint(0, 0xFF)) for i in range(CryptoKey.SALT_SIZE))
+        salt = "".join(
+            chr(random.randint(0, 0xFF)) for _ in range(CryptoKey.SALT_SIZE)
+        )
+
         start_time = time.time()
         end_time = start_time + self.computation_time
         x = hashlib.sha256(password + salt)
@@ -84,8 +87,7 @@ class IPCoder(object):
         ip_int = int(ip)
         word_count = ip._module.width / 8
         words = netaddr.strategy.int_to_words(ip_int, 8, word_count)
-        packed = struct.pack(">" + "B" * len(words), *words)
-        return packed
+        return struct.pack(">" + "B" * len(words), *words)
 
     def __unpack_ip(self, packed):
         n = len(packed)
@@ -105,8 +107,7 @@ class IPCoder(object):
         encryptor = AES.new(self.key, AES.MODE_CBC, self.iv)
         plaintext = self.__pack_ip(ip)
         plaintext = self.pad(plaintext)
-        cyphertext = encryptor.encrypt(plaintext)
-        return cyphertext
+        return encryptor.encrypt(plaintext)
 
     def decrypt(self, cyphertext):
         """docstring for decrypt"""

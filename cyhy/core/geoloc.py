@@ -14,8 +14,7 @@ GEODB_FILE_PATHS = []
 RESTRICTED_COUNTRIES = ["China", "Iran", "North Korea", "Russia"]
 # Ensure that the order in GEODB_FILES is used for searching
 for file in GEODB_FILES:
-    for path in GEODB_CITY_PATHS:
-        GEODB_FILE_PATHS.append(path + file)
+    GEODB_FILE_PATHS.extend(path + file for path in GEODB_CITY_PATHS)
 
 
 class GeoLocDB(object):
@@ -35,7 +34,7 @@ class GeoLocDB(object):
         try:
             # ip is expected to be a netaddr.IPAddress
             response = self.__reader.city(str(ip))
-            if response == None:
+            if response is None:
                 return (None, None)
             return (response.location.longitude, response.location.latitude)
         except AddressNotFoundError:

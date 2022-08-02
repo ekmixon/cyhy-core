@@ -56,10 +56,7 @@ def parse_json(db, json_stream):
 
 
 def process_file(db, filename, gzipped=False):
-    if gzipped:
-        stream = gzip.GzipFile(filename)
-    else:
-        stream = open(filename, "rb")
+    stream = gzip.GzipFile(filename) if gzipped else open(filename, "rb")
     parse_json(db, stream)
 
 

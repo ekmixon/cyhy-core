@@ -20,17 +20,14 @@ DEFAULT_DATABASE_URI = "mongodb://localhost:27017/"
 
 class Config(object):
     def __init__(self, config_section=None, config_filename=None):
-        if config_filename:
-            self.config_filename = config_filename
-        else:
-            self.config_filename = DEFAULT_CONFIG_FILENAME
+        self.config_filename = config_filename or DEFAULT_CONFIG_FILENAME
         if not os.path.exists(self.config_filename):
             self.__write_config()
             self.config_created = self.config_filename
         else:
             self.config_created = None
         config = self.__read_config()
-        if config_section == None:
+        if config_section is None:
             config_section = config.get(DEFAULT, DEFAULT_SECTION)
         self.active_section = config_section
         self.db_name = config.get(config_section, DATABASE_NAME)

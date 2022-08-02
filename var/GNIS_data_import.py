@@ -57,9 +57,7 @@ def is_imported(db, f, type):
     # Get the first record.
     while True:
         first_data_line = f.readline()
-        if first_data_line.lstrip()[0] == "#":  # Skip commented out lines.
-            pass
-        else:
+        if first_data_line.lstrip()[0] != "#":
             break
 
     # Seek to the second to last byte in the file (to avoid any trailing newline).
@@ -70,14 +68,12 @@ def is_imported(db, f, type):
             f.seek(-2, 1)  # Seek to the byte before the one we just read.
         pos = f.tell()
         last_data_line = f.readline()
-        if last_data_line.lstrip()[0] == "#":  # Skip commented out lines.
-            # Reset location to one byte before the line just read.
-            f.seek(pos)
-            f.seek(-1, 1)
-            pass
-        else:
+        if last_data_line.lstrip()[0] != "#":
             break
 
+        # Reset location to one byte before the line just read.
+        f.seek(pos)
+        f.seek(-1, 1)
     first_record = first_data_line.strip().split("|")
     last_record = last_data_line.strip().split("|")
     if (
@@ -126,13 +122,14 @@ def import_govt_units(db, csv_reader):
 def import_populated_places(db, csv_reader):
     # IMPORTANT: This import must be done AFTER import_govt_units()
     all_states = db.PlaceDoc.find({"class": "STATE"})
-    state_lookup = dict()
-    for state in all_states:
-        state_lookup[state["state"]] = {
+    state_lookup = {
+        state["state"]: {
             "state_name": state["state_name"],
             "country": state["country"],
             "country_name": state["country_name"],
         }
+        for state in all_states
+    }
 
     for line in csv_reader:
         placeDoc = db.PlaceDoc(

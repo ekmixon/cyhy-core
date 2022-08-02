@@ -58,8 +58,7 @@ DAYS_OF_WEEK = [
 
 def already_exists(db, request):
     owner = request["_id"]
-    db_request = db.RequestDoc.get_by_owner(owner)
-    if db_request:
+    if db_request := db.RequestDoc.get_by_owner(owner):
         return True
 
 
@@ -153,7 +152,7 @@ def import_file(db, filename, force, init_stage=None):
             # For py3, encoding should move from json.load into open statement
             request = json.load(f, encoding="ascii")
     except UnicodeDecodeError as e:
-        print ("Document contains a non-ASCII character: {}".format(e))
+        print(f"Document contains a non-ASCII character: {e}")
         return False
 
     return import_request(db, request, filename, force, init_stage)
@@ -168,11 +167,11 @@ def main():
     args = docopt(__doc__, version="v0.0.1")
     db = database.db_from_config(args["--section"])
 
-    if args["FILE"] != None:
-        success = import_file(db, args["FILE"], args["--force"], args["--init-stage"])
-    else:
+    if args["FILE"] is None:
         success = import_stdin(db, args["--force"], args["--init-stage"])
 
+    else:
+        success = import_file(db, args["FILE"], args["--force"], args["--init-stage"])
     if not success:
         sys.exit(-1)
 

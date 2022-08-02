@@ -38,18 +38,12 @@ class YamlConfig:
 
             if section is None:
                 section = YamlConfig.DEFAULT
-            else:
-                if not isinstance(section, basestring):
-                    raise ValueError("Section must be a string.")
-                elif section not in self.config[service]:
-                    raise KeyError(
-                        'Section "{}" not found in service {}'.format(section, service)
-                    )
+            elif not isinstance(section, basestring):
+                raise ValueError("Section must be a string.")
+            elif section not in self.config[service]:
+                raise KeyError(f'Section "{section}" not found in service {service}')
             return self.config[service][section]
-        except KeyError as e:
-            self.logger.exception(e)
-            raise
-        except ValueError as e:
+        except (KeyError, ValueError) as e:
             self.logger.exception(e)
             raise
 
@@ -71,16 +65,11 @@ class YamlConfig:
                     )
                 elif config[YamlConfig.VERSION] not in YamlConfig.SUPPORTED_VERSIONS:
                     raise ValueError(
-                        "Configuration version {} not supported.\n  Please use "
-                        "one of the following versions: {}.".format(
-                            config[YamlConfig.VERSION], YamlConfig.SUPPORTED_VERSIONS
-                        )
+                        f"Configuration version {config[YamlConfig.VERSION]} not supported.\n  Please use one of the following versions: {YamlConfig.SUPPORTED_VERSIONS}."
                     )
+
                 return config
-        except IOError as e:
-            self.logger.exception(e)
-            raise
-        except KeyError as e:
+        except (IOError, KeyError) as e:
             self.logger.exception(e)
             raise
         except ValueError as e:

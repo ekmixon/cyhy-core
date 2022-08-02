@@ -49,7 +49,7 @@ def list_to_range_string(sortedList):
         if a == b:
             result.append(str(a))
         else:
-            result.append("%s-%s" % (a, b))
+            result.append(f"{a}-{b}")
     return ",".join(result)
 
 
@@ -57,7 +57,7 @@ def range_string_to_list(range_string):
     """returns a list of the values represented by a range string"""
     if range_string == "":
         return []
-    output = list()
+    output = []
     for x in range_string.split(","):
         y = x.split("-")
         if len(y) > 1:
@@ -86,9 +86,9 @@ def custom_json_handler(obj):
     elif type(obj) == netaddr.IPSet:
         return obj.iter_cidrs()
     else:
-        raise TypeError, "Object of type %s with value of %s is not JSON serializable" % (
-            type(obj),
-            repr(obj),
+        raise (
+            TypeError,
+            f"Object of type {type(obj)} with value of {repr(obj)} is not JSON serializable",
         )
 
 
@@ -103,15 +103,12 @@ def to_json(obj):
 def isXML(filename):
     f = open(filename)
     line = f.readline()
-    if line.startswith("<?xml"):
-        return True
-    return False
+    return bool(line.startswith("<?xml"))
 
 
 def count_file_lines(filename):
     with open(filename) as f:
-        for i, l in enumerate(f):
-            pass
+        pass
     return i + 1
 
 
@@ -145,19 +142,17 @@ def pretty_bail(self, exception, thing):
 def time_to_utc(in_time):
     """converts time to UTC.  if the time passed in does not have
     zone information, it is assumed to be the local timezone"""
-    if in_time.tzinfo == None:
+    if in_time.tzinfo is None:
         in_time = in_time.replace(tzinfo=tz.tzlocal())
-    utc_time = in_time.astimezone(tz.tzutc())
-    return utc_time
+    return in_time.astimezone(tz.tzutc())
 
 
 def time_to_local(in_time):
     """converts time to the local timezone.  if the time passed in does not have
     zone information, it is assumed to be UTC"""
-    if in_time.tzinfo == None:
+    if in_time.tzinfo is None:
         in_time = in_time.replace(tzinfo=tz.tzutc())
-    local_time = in_time.astimezone(tz.tzlocal())
-    return local_time
+    return in_time.astimezone(tz.tzlocal())
 
 
 def utcnow():
@@ -191,9 +186,7 @@ class LogFilter(logging.Filter):
     def filter(self, record):
         # import IPython; IPython.embed() #<<< BREAKPOINT >>>
         # filter out fabric messages
-        if record.name.startswith("paramiko"):
-            return False
-        return True
+        return not record.name.startswith("paramiko")
 
 
 def setup_logging(level=logging.INFO, console=False, filename=None):
@@ -223,7 +216,7 @@ def report_dates(now=None):
     otherwise it will use the current wall clock time.  All times UTC.
     See the return statement for a list of the dates returned. ;)
     """
-    if now == None:
+    if now is None:
         now = utcnow()
 
     if now.month >= 10:  # FY starts in October

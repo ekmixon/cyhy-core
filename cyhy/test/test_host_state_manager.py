@@ -14,8 +14,7 @@ def state_manager():
 
 @pytest.fixture
 def h(database):
-    h = database.HostDoc()
-    return h
+    return database.HostDoc()
 
 
 # @pytest.mark.parametrize(('sources'), [SOURCE_NESSUSS_1, SOURCE_NESSUSS_2, SOURCE_NESSUSS_3, SOURCE_NESSUSS_4], scope='class')
@@ -29,7 +28,7 @@ class TestStateManager:
         h["status"] = status
         h["stage"] = stage
         was_changed = state_manager.transition(h)
-        assert h["stage"] == stage, "stage SHOULD NOT change when status is %s" % status
+        assert h["stage"] == stage, f"stage SHOULD NOT change when status is {status}"
         assert was_changed == False, '"was_changed" should be False'
 
     @pytest.mark.parametrize(("status"), [STATUS.WAITING, STATUS.READY, STATUS.RUNNING])
@@ -87,8 +86,8 @@ class TestStateManager:
         h["status"] = STATUS.RUNNING
         was_changed = state_manager.transition(h, up=up)
         assert was_changed == True, '"was_changed" should be True'
-        assert h["stage"] == f_stage, "stage should be %s" % f_stage
-        assert h["status"] == f_status, "status should be %s." % f_status
+        assert h["stage"] == f_stage, f"stage should be {f_stage}"
+        assert h["status"] == f_status, f"status should be {f_status}."
 
     @pytest.mark.parametrize(
         ("i_stage,has_open_ports,f_stage,f_status"),
@@ -104,7 +103,7 @@ class TestStateManager:
         h["status"] = STATUS.RUNNING
         was_changed = state_manager.transition(h, has_open_ports=has_open_ports)
         assert was_changed == True, '"was_changed" should be True'
-        assert h["stage"] == f_stage, "stage should be %s" % f_stage
-        assert h["status"] == f_status, "status should be %s." % f_status
+        assert h["stage"] == f_stage, f"stage should be {f_stage}"
+        assert h["status"] == f_status, f"status should be {f_status}."
 
     # import IPython; IPython.embed() #<<< BREAKPOINT >>>

@@ -112,8 +112,7 @@ def read_file(filename):
 def get_special_intersections(cidrs):
     results = {}  # {request: IPSet of intersections}
     for description, special_set in SPECIAL_RANGES.items():
-        intersection = special_set & cidrs
-        if intersection:
+        if intersection := special_set & cidrs:
             results[description] = intersection
     return results
 

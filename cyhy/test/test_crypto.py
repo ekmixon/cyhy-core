@@ -34,14 +34,12 @@ _ID = 0
 
 @pytest.fixture(scope="module")
 def key():
-    k = CryptoKey(CORRECT_PASSWORD, computation_time=COMP_TIME)
-    return k
+    return CryptoKey(CORRECT_PASSWORD, computation_time=COMP_TIME)
 
 
 @pytest.fixture
 def collection(database):
-    col = database["secret"]
-    return col
+    return database["secret"]
 
 
 class TestCryptoKey:
@@ -63,7 +61,7 @@ class TestCryptoKey:
     def test_bad_key_check(self, key):
         with pytest.raises(Exception):
             k = CryptoKey(INCORRECT_PASSWORD, key.salt, key.rounds, key.key_check)
-            assert k.key == None
+            assert k.key is None
 
     def test_no_key_check(self, key):
         k = CryptoKey(INCORRECT_PASSWORD, key.salt, key.rounds)
@@ -75,15 +73,14 @@ class TestCryptoKey:
 class TestIPCoderToMemory:
     def test_encrypt_to_memory(self, key, address):
         print
-        iv = "".join(chr(random.randint(0, 0xFF)) for i in range(16))
+        iv = "".join(chr(random.randint(0, 0xFF)) for _ in range(16))
         coder = IPCoder(key.key, iv)
         ip = netaddr.IPAddress(address)
         ciphertext = coder.encrypt(ip)
 
-        print "ip:", ip
-        print "iv :", b64encode(iv)
-        print "ciphertext:", b64encode(ciphertext)
-
+        print
+        print
+        print
         TestIPCoderToMemory.rec = {"iv": Binary(iv), "ip": Binary(ciphertext)}
 
     def test_decrypt_from_memory(self, key, address):
@@ -106,15 +103,14 @@ class TestIPCoderToMemory:
 class TestIPCoderToDatabase:
     def test_encrypt_to_database(self, collection, key, address):
         print
-        iv = "".join(chr(random.randint(0, 0xFF)) for i in range(16))
+        iv = "".join(chr(random.randint(0, 0xFF)) for _ in range(16))
         coder = IPCoder(key.key, iv)
         ip = netaddr.IPAddress(address)
         ciphertext = coder.encrypt(ip)
 
-        print "ip:", ip
-        print "iv :", b64encode(iv)
-        print "ciphertext:", b64encode(ciphertext)
-
+        print
+        print
+        print
         rec = {"_id": _ID, "iv": Binary(iv), "ip": Binary(ciphertext)}
         collection.update({"_id": _ID}, rec, upsert=True)
 

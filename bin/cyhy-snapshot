@@ -250,7 +250,7 @@ def delete_snapshot(db, ch_db, snapshot_id):
 
 def read_file(filename):
     f = open(filename, "r")
-    for line in f.readlines():
+    for line in f:
         if line.startswith("#"):
             continue
         yield line.strip()  # boosh!

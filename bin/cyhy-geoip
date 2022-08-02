@@ -71,20 +71,16 @@ SPECIAL_RANGES = {
 
 
 def logging_setup(debug_logging):
-    if debug_logging:
-        level = logging.DEBUG
-    else:
-        level = DEFAULT_LOGGER_LEVEL
+    level = logging.DEBUG if debug_logging else DEFAULT_LOGGER_LEVEL
     util.setup_logging(level, filename=LOG_FILE)
     # Only output if debug is enabled.  Skipped otherwise.
     logger.debug("Debug logging enabled")
 
 
 def get_special_intersections(cidrs):
-    results = dict()  # {request: IPSet of intersections}
+    results = {}
     for description, special_set in SPECIAL_RANGES.items():
-        intersection = special_set & cidrs
-        if intersection:
+        if intersection := special_set & cidrs:
             results[description] = intersection
     return results
 
@@ -136,9 +132,8 @@ def do_update(chdb, gidb, up_only=False, owner=None):
 
     logger.info(header_message)
 
-    total_processed = 0
     total_updated = 0
-    for host in hosts:
+    for total_processed, host in enumerate(hosts, start=1):
         check_special_intersections(host["ip"])
         # lookup() returns a tuple but the host object stores it as a list
         new_loc = list(gidb.lookup(host["ip"]))
@@ -153,7 +148,6 @@ def do_update(chdb, gidb, up_only=False, owner=None):
                 )
             )
 
-        total_processed += 1
         if (total_processed % UPDATE_INCREMENT) == 0:
             logger.info(
                 "Processed {:,}/{:,} host document(s) ({:,} updated)".format(

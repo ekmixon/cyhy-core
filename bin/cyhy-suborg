@@ -53,8 +53,7 @@ def parse_addresses(addresses):
 
 def already_exists(db, request):
     owner = request["_id"]
-    db_request = db.RequestDoc.get_by_owner(owner)
-    if db_request:
+    if db_request := db.RequestDoc.get_by_owner(owner):
         return True
 
 
@@ -129,9 +128,8 @@ def import_child_request(db, parent_org_request, child_org_request):
 
 
 def import_child_file(db, parent_org_request, filename):
-    f = open(filename, "rb")
-    child_org_request = json.load(f)
-    f.close()
+    with open(filename, "rb") as f:
+        child_org_request = json.load(f)
     return import_child_request(db, parent_org_request, child_org_request)
 
 

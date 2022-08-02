@@ -134,9 +134,13 @@ def purge_running(db):
 
 
 def all_status(db, sync=False):
-    owners = []
-    for r in db.RequestDoc.find({"scan_types": SCAN_TYPE.CYHY}).sort("_id", 1):
-        owners.append(r["_id"])
+    owners = [
+        r["_id"]
+        for r in db.RequestDoc.find({"scan_types": SCAN_TYPE.CYHY}).sort(
+            "_id", 1
+        )
+    ]
+
     status(db, owners, sync)
 
 

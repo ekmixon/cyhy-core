@@ -48,21 +48,21 @@ class CHDatabase(object):
         self.__logger = logging.getLogger(__name__)
         self.__scheduler = scheduler
         self.__next_scan_limit = next_scan_limit
-        if state_manager == None:
+        if state_manager is None:
             self.__state_manager = DefaultHostStateManager()
         else:
             self.__state_manager = state_manager()
-        if scheduler == None:
+        if scheduler is None:
             self.__scheduler = DefaultScheduler(self.__db)
         else:
             self.__scheduler = scheduler(self.__db)
 
     def __str__(self):
-        return "<CHDatabase %s>" % (self.__db)
+        return f"<CHDatabase {self.__db}>"
 
     def request_limits(self, when=None):
         # returns {owner: {stage:limit, stage:limit, ...}, ...}
-        if when == None:
+        if when is None:
             when = util.utcnow()
         requests = self.__db.RequestDoc.find({"scan_types": SCAN_TYPE.CYHY})
         results = {}
@@ -97,10 +97,8 @@ class CHDatabase(object):
         limits = self.request_limits()
         for (owner, limit) in limits.items():
             tally = self.__db.TallyDoc.get_by_owner(owner)
-            if tally == None:
-                self.__logger.warning(
-                    "No tally document found for: %s ... skipping." % owner
-                )
+            if tally is None:
+                self.__logger.warning(f"No tally document found for: {owner} ... skipping.")
                 continue
             for (stage, target_active_count) in limit.items():
                 (waiting_count, ready_count, running_count) = tally.active_host_count(
@@ -111,10 +109,9 @@ class CHDatabase(object):
                     should_be_ready = max(0, target_active_count - running_count)
                     if should_be_ready > ready_count and waiting_count > 0:
                         requested_increase = should_be_ready - ready_count
-                        actual_increase = self.increase_ready_hosts(
+                        if actual_increase := self.increase_ready_hosts(
                             owner, stage, requested_increase
-                        )
-                        if actual_increase:
+                        ):
                             self.__logger.debug(
                                 "%s %s target=%d [READY:%d + RUNNING:%d = ACTIVE:%d] + READY:%d = %d"
                                 % (
@@ -130,10 +127,9 @@ class CHDatabase(object):
                             )
                     elif should_be_ready < ready_count:
                         requested_decrease = ready_count - should_be_ready
-                        actual_decrease = self.decrease_ready_hosts(
+                        if actual_decrease := self.decrease_ready_hosts(
                             owner, stage, requested_decrease
-                        )
-                        if actual_decrease:
+                        ):
                             self.__logger.debug(
                                 "%s %s target=%d [READY:%d + RUNNING:%d = ACTIVE:%d] - READY:%d = %d"
                                 % (
@@ -149,15 +145,12 @@ class CHDatabase(object):
                             )
 
     def reset_state_by_schedule(self):
-        hosts_modified_count = self.__db.HostDoc.reset_state_by_schedule()
-        return hosts_modified_count
+        return self.__db.HostDoc.reset_state_by_schedule()
 
     def tally_update(self, owner, prev_stage, prev_status, new_stage, new_status):
         tally = self.__db.TallyDoc.get_by_owner(owner)
-        if tally == None:
-            self.__logger.warning(
-                "Tally document not found for: %s ... skipping." % owner
-            )
+        if tally is None:
+            self.__logger.warning(f"Tally document not found for: {owner} ... skipping.")
             return
         tally.transfer(prev_stage, prev_status, new_stage, new_status, 1)
         tally.save()
@@ -187,10 +180,11 @@ class CHDatabase(object):
             - HostDoc: host that was transitioned
             - state_changed: True if the state changed, False otherwise."""
         host = self.__db.HostDoc.get_by_ip(ip)
-        if host == None:
+        if host is None:
             self.__logger.warning(
-                "Could not find %s in database during transition_host call" % ip
+                f"Could not find {ip} in database during transition_host call"
             )
+
             return (None, False)
 
         prev_stage = host["stage"]
@@ -290,8 +284,7 @@ class CHDatabase(object):
         for ip in ip_list:
             ports = self.__db.PortScanDoc.get_open_ports_for_ip(ip)
             result.update(ports)
-        result = list(result)
-        result.sort()
+        result = sorted(result)
         return result
 
     def __process_services(self, results):
@@ -304,10 +297,7 @@ class CHDatabase(object):
         return services
 
     def __process_open_ticket_age(self, results, open_as_of_date):
-        open_ticket_age = {}
-        open_ticket_age[
-            "tix_open_as_of_date"
-        ] = open_as_of_date  # Save the date when these calcs were run
+        open_ticket_age = {"tix_open_as_of_date": open_as_of_date}
         if results:
             df = pd.DataFrame(results)
             for (severity_name, severity_id) in [
@@ -334,10 +324,7 @@ class CHDatabase(object):
         return open_ticket_age
 
     def __process_closed_ticket_age(self, results, closed_after_date):
-        closed_ticket_age = {}
-        closed_ticket_age[
-            "tix_closed_after_date"
-        ] = closed_after_date  # Only calculate these metrics for tix that closed on/after this date
+        closed_ticket_age = {"tix_closed_after_date": closed_after_date}
         if results:
             df = pd.DataFrame(results)
             for (severity_name, severity_id) in [
@@ -387,12 +374,11 @@ class CHDatabase(object):
         if r3:
             spans.append(r3[0])
 
-        if len(spans) == 0:
+        if not spans:
             return None, None
-        else:
-            start_time = min([i["start_time"] for i in spans])
-            end_time = max([i["end_time"] for i in spans])
-            return start_time, end_time
+        start_time = min(i["start_time"] for i in spans)
+        end_time = max(i["end_time"] for i in spans)
+        return start_time, end_time
 
     def __get_host_timespan(self, owners):
         """determines the earliest and latest last_changed times of hosts"""
@@ -402,10 +388,9 @@ class CHDatabase(object):
 
         if len(results) == 0:
             return None, None  # owner has no host docs
-        else:
-            start_time = results[0]["start_time"]
-            end_time = results[0]["end_time"]
-            return start_time, end_time
+        start_time = results[0]["start_time"]
+        end_time = results[0]["end_time"]
+        return start_time, end_time
 
     def remove_tag(self, snapshot_oid):
         """removes a snapshot tag from all documents.

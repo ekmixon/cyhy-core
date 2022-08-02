@@ -100,12 +100,7 @@ class DefaultScheduler(BaseScheduler):
         q = max_severity_for_host(ip_int)
         r = database.run_pipeline_cursor(q, self._db)
         database.id_expand(r)
-        if len(r) > 0:
-            # found tickets
-            return r[0]["severity_max"]
-        else:
-            # no tickets
-            return 0
+        return r[0]["severity_max"] if len(r) > 0 else 0
 
     def schedule(self, host):
         super(DefaultScheduler, self).schedule(host)

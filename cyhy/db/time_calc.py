@@ -11,11 +11,11 @@ from cyhy.util import util
 
 
 def in_windows(windows, time=None):
-    if time == None:
+    if time is None:
         time = util.utcnow()
 
     for w in windows:
-        parse_me = "%s %s" % (w["day"], w["start"])
+        parse_me = f'{w["day"]} {w["start"]}'
         dt = parser.parse(parse_me)
         dow = dt.weekday()
         relative_weekday = dateutil.relativedelta.weekday(dow)

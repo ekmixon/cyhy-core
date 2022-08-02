@@ -38,10 +38,9 @@ def pause_commander(db, sender, reason, wait=False, timeout=None, quiet=False):
         if not quiet:
             if timeout > 0:
                 print(
-                    "Waiting up to {} second{} for commander to stop...".format(
-                        timeout, ("" if timeout == 1 else "s")
-                    )
+                    f'Waiting up to {timeout} second{"" if timeout == 1 else "s"} for commander to stop...'
                 )
+
             else:
                 print("Waiting for commander to stop...")
         wait_result = doc.wait(timeout=timeout)
@@ -85,7 +84,7 @@ def delete_control_doc(db, doc_id, quiet=False):
     doc = db.SystemControlDoc.find_one({"_id": ObjectId(doc_id)})
     if not doc:
         if not quiet:
-            print("Could not find a control document with ID {}".format(doc_id))
+            print(f"Could not find a control document with ID {doc_id}")
         return False
     doc.delete()
     return True
@@ -95,11 +94,7 @@ def main():
     args = docopt(__doc__, version="v0.0.1")
     db = database.db_from_config(args["--section"])
 
-    if args["--timeout"]:
-        timeout = int(args["--timeout"])
-    else:
-        timeout = None
-
+    timeout = int(args["--timeout"]) if args["--timeout"] else None
     if args["pause"]:
         success = pause_commander(
             db,

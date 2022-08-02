@@ -100,15 +100,13 @@ class VulnTicketManager(object):
         }
 
         if "cve" in vuln:
-            cve_doc = self.__db.CVEDoc.find_one({"_id": vuln["cve"]})
-            if cve_doc:
+            if cve_doc := self.__db.CVEDoc.find_one({"_id": vuln["cve"]}):
                 new_details["score_source"] = "nvd"
                 new_details["cvss_base_score"] = cve_doc["cvss_score"]
                 new_details["severity"] = cve_doc["severity"]
 
         if check_for_changes:
-            delta = self.__calculate_delta(ticket["details"], new_details)
-            if delta:
+            if delta := self.__calculate_delta(ticket["details"], new_details):
                 event = {
                     "time": vuln["time"],
                     "action": TICKET_EVENT.CHANGED,
@@ -132,15 +130,14 @@ class VulnTicketManager(object):
         # (by cyhy-reports), the owner _id for that PDF is added to the
         # generated_for list.  It's a list because the same NotificationDoc
         # can get used in both a parent and a descendant PDF.
-        new_notification["generated_for"] = list()
+        new_notification["generated_for"] = []
         new_notification.save()
 
     def open_ticket(self, vuln, reason):
         if self.__closing_time is None or self.__closing_time < vuln["time"]:
             self.__closing_time = vuln["time"]
 
-        # search for previous open ticket that matches
-        prev_open_ticket = self.__db.TicketDoc.find_one(
+        if prev_open_ticket := self.__db.TicketDoc.find_one(
             {
                 "ip_int": long(vuln["ip"]),
                 "port": vuln["port"],
@@ -149,8 +146,7 @@ class VulnTicketManager(object):
                 "source_id": vuln["plugin_id"],
                 "open": True,
             }
-        )
-        if prev_open_ticket:
+        ):
             self.__generate_ticket_details(vuln, prev_open_ticket)
             self.__check_false_positive_expiration(
                 prev_open_ticket, vuln["time"].replace(tzinfo=tz.tzutc())
@@ -172,7 +168,7 @@ class VulnTicketManager(object):
         # no matching tickets are currently open
         # search for a previously closed ticket that was closed before the cutoff
         cutoff_date = util.utcnow() + self.__reopen_delta
-        reopen_ticket = self.__db.TicketDoc.find_one(
+        if reopen_ticket := self.__db.TicketDoc.find_one(
             {
                 "ip_int": long(vuln["ip"]),
                 "port": vuln["port"],
@@ -182,9 +178,7 @@ class VulnTicketManager(object):
                 "open": False,
                 "time_closed": {"$gt": cutoff_date},
             }
-        )
-
-        if reopen_ticket:
+        ):
             self.__generate_ticket_details(vuln, reopen_ticket)
             event = {
                 "time": vuln["time"],
@@ -403,15 +397,14 @@ class IPPortTicketManager(object):
         # (by cyhy-reports), the owner _id for that PDF is added to the
         # generated_for list.  It's a list because the same NotificationDoc
         # can get used in both a parent and a descendant PDF.
-        new_notification["generated_for"] = list()
+        new_notification["generated_for"] = []
         new_notification.save()
 
     def open_ticket(self, portscan, reason):
         if self.__closing_time is None or self.__closing_time < portscan["time"]:
             self.__closing_time = portscan["time"]
 
-        # search for previous open ticket that matches
-        prev_open_ticket = self.__db.TicketDoc.find_one(
+        if prev_open_ticket := self.__db.TicketDoc.find_one(
             {
                 "ip_int": portscan["ip_int"],
                 "port": portscan["port"],
@@ -420,8 +413,7 @@ class IPPortTicketManager(object):
                 "source_id": portscan["source_id"],
                 "open": True,
             }
-        )
-        if prev_open_ticket:
+        ):
             self.__check_false_positive_expiration(
                 prev_open_ticket, portscan["time"].replace(tzinfo=tz.tzutc())
             )  # explicitly set to UTC (see CYHY-286)
@@ -439,7 +431,7 @@ class IPPortTicketManager(object):
         # no matching tickets are currently open
         # search for a previously closed ticket that was closed before the cutoff
         cutoff_date = util.utcnow() + self.__reopen_delta
-        reopen_ticket = self.__db.TicketDoc.find_one(
+        if reopen_ticket := self.__db.TicketDoc.find_one(
             {
                 "ip_int": portscan["ip_int"],
                 "port": portscan["port"],
@@ -449,9 +441,7 @@ class IPPortTicketManager(object):
                 "open": False,
                 "time_closed": {"$gt": cutoff_date},
             }
-        )
-
-        if reopen_ticket:
+        ):
             event = {
                 "time": portscan["time"],
                 "action": TICKET_EVENT.REOPENED,
@@ -622,9 +612,9 @@ class IPTicketManager(object):
         # find tickets with ips that were not up and are open
         tickets = self.__db.TicketDoc.find({"ip_int": {"$in": ip_ints}, "open": True})
 
+        # don't close tickets that are false_positives, just add event
+        reason = "host down"
         for ticket in tickets:
-            # don't close tickets that are false_positives, just add event
-            reason = "host down"
             self.__check_false_positive_expiration(
                 ticket, closing_time.replace(tzinfo=tz.tzutc())
             )  # explicitly set to UTC (see CYHY-286)

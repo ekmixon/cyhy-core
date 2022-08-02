@@ -161,14 +161,12 @@ def vuln_ticket_manager2(database):
 
 @pytest.fixture
 def vuln_ticket_manager3(database):
-    vtm = VulnTicketManager(database, SOURCE_NESSUS)
-    return vtm
+    return VulnTicketManager(database, SOURCE_NESSUS)
 
 
 @pytest.fixture
 def ip_port_ticket_manager1(database):
-    ptm = IPPortTicketManager(database, PROTOCOLS)
-    return ptm
+    return IPPortTicketManager(database, PROTOCOLS)
 
 
 @pytest.fixture
@@ -177,8 +175,7 @@ def ip_port_ticket_manager2(database):
     vtm = VulnTicketManager(database, SOURCE_NESSUS)
     vtm.open_ticket(VULN_1, "test vuln detected")
     vtm.open_ticket(VULN_2, "test vuln detected")
-    ptm = IPPortTicketManager(database, PROTOCOLS)
-    return ptm
+    return IPPortTicketManager(database, PROTOCOLS)
 
 
 @pytest.fixture
@@ -188,8 +185,7 @@ def ip_port_ticket_manager3(database):
     vtm.open_ticket(VULN_1, "test vuln detected")
     vtm.open_ticket(VULN_2, "test vuln detected")
     vtm.open_ticket(VULN_4, "test vuln detected")
-    ptm = IPPortTicketManager(database, PROTOCOLS)
-    return ptm
+    return IPPortTicketManager(database, PROTOCOLS)
 
 
 @pytest.fixture
@@ -202,8 +198,7 @@ def ip_port_ticket_manager4(database):
 
 @pytest.fixture
 def ip_ticket_manager1(database):
-    ptm = IPTicketManager(database)
-    return ptm
+    return IPTicketManager(database)
 
 
 @pytest.fixture
@@ -212,8 +207,7 @@ def ip_ticket_manager2(database):
     vtm = VulnTicketManager(database, SOURCE_NESSUS)
     vtm.open_ticket(VULN_1, "test vuln detected")
     vtm.open_ticket(VULN_2, "test vuln detected")
-    ptm = IPTicketManager(database)
-    return ptm
+    return IPTicketManager(database)
 
 
 @pytest.fixture

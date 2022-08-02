@@ -37,9 +37,10 @@ CONTROL_TARGET = Enumerator("COMMANDER")
 
 class PortScanNotFoundException(Exception):
     def __init__(self, ticket_id, port_scan_id, port_scan_time, *args):
-        message = "Ticket {}: referenced PortScanDoc {} not found".format(
-            ticket_id, port_scan_id, port_scan_time
+        message = (
+            f"Ticket {ticket_id}: referenced PortScanDoc {port_scan_id} not found"
         )
+
         self.ticket_id = ticket_id
         self.port_scan_id = port_scan_id
         self.port_scan_time = port_scan_time
@@ -48,9 +49,10 @@ class PortScanNotFoundException(Exception):
 
 class VulnScanNotFoundException(Exception):
     def __init__(self, ticket_id, vuln_scan_id, vuln_scan_time, *args):
-        message = "Ticket {}: referenced VulnScanDoc {} not found".format(
-            ticket_id, vuln_scan_id, vuln_scan_time
+        message = (
+            f"Ticket {ticket_id}: referenced VulnScanDoc {vuln_scan_id} not found"
         )
+
         self.ticket_id = ticket_id
         self.vuln_scan_id = vuln_scan_id
         self.vuln_scan_time = vuln_scan_time

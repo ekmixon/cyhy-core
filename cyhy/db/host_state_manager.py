@@ -70,7 +70,7 @@ class DefaultHostStateManager(object):
                 return (stage, STATUS.DONE, True, True)
 
         self.__logger.warning(
-            "Host arrived in a state we were not prepared to handle [%s, %s]"
-            % (stage, status)
+            f"Host arrived in a state we were not prepared to handle [{stage}, {status}]"
         )
+
         return (stage, status, False, False)
